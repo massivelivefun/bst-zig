@@ -55,6 +55,7 @@ pub fn BinarySearchTree(comptime T: type) type {
             return result;
         }
 
+        // This does not work yet.
         pub fn delete(
             self: *Self,
             value: T,
