@@ -9,8 +9,7 @@ const os = std.os;
 pub fn main() (mem.Allocator.Error || os.WriteError)!void {
     var arena = heap.ArenaAllocator.init(heap.page_allocator);
     defer arena.deinit();
-
-    const allocator = &arena.allocator;
+    const allocator = &arena.allocator();
 
     var tree = bst.BinarySearchTree(isize).init(allocator);
     defer tree.deinit();
@@ -23,20 +22,26 @@ pub fn main() (mem.Allocator.Error || os.WriteError)!void {
     _ = try tree.insert(16);
     _ = try tree.insert(17);
 
+    const stdout = io.getStdOut().writer();
+
     const expected = 12;
     const actual = tree.search(expected);
     if (actual) |safe_actual| {
         const value = safe_actual.value;
         if (value == expected) {
-            const stdout = io.getStdOut().writer();
-            try stdout.print("The node has a value of {}.\n", .{value});
+            try stdout.print("\nThe node has a value of {}.\n", .{value});
         }
     }
 
-    const stdout = io.getStdOut().writer();
-
+    try stdout.print("\n", .{});
     try tree.printInorder();
     try stdout.print("\n", .{});
-    _ = tree.delete(12);
+    tree.delete(12);
+    try tree.printInorder();
+    try stdout.print("\n", .{});
+    tree.delete(15);
+    try tree.printInorder();
+    try stdout.print("\n", .{});
+    tree.delete(17);
     try tree.printInorder();
 }
