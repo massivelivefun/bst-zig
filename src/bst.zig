@@ -55,77 +55,59 @@ pub fn BinarySearchTree(comptime T: type) type {
             return result;
         }
 
-        // This does not work yet.
         pub fn delete(
             self: *Self,
             value: T,
-        ) ?T {
-            var node: *?*Node = &self.root;
-            var parent_node: ?*?*Node = null;
-            var direction: bool = false;
-            var min: ?T = null;
-            while (node.*) |safe_node| {
-                if (safe_node.value == value) {
-                    min = findMinRight(self.allocator, safe_node);
-                    // there was a min in the right sub tree
-                    if (min) |safe_min| {
-                        // the node with the value was killed
-                        // so just assign
-                        safe_node.value = value;
-                    // there wasn't a right sub tree at all
-                    } else {
-                        // so kill the target node
-                        // then link target's parent to target's left child
-                        // but to link to the parent i need to know if the
-                        // target was the left or right child of its parent
-                        // otherwise i run the risk of lopping off a sub tree
-                        // leaking memory on delete
-                        self.allocator.destroy(safe_node);
-                        // target was left child
-                        // null problems fun...
-                        if (direction) {
-                            parent_node.left = safe_node.left;
-                        // target was right child
-                        } else {
-                            parent_node.right = safe_node.right;
-                        }
-                    }
-                    safe_node.value = min;
+        ) void {
+            var curr: *?*Node = &self.root;
+            var prev: ?*Node = null;
+
+            while (curr.*) |safe_curr| {
+                if (safe_curr.value == value) {
                     break;
                 }
-                parent_node = node;
+                prev = safe_curr;
+                curr = traverse(safe_curr, value);
+            }
 
-                // inlined traversal function so i can record what side tranversal went down
-                var next: *?*Node = undefined;
-                if (safe_node.value > value) {
-                    next = &safe_node.left;
-                    direction = true;
+            if (curr.*) |safe_curr| {
+                if (safe_curr.left == null or safe_curr.right == null) {
+                    var new_curr: ?*Node = undefined;
+
+                    if (safe_curr.left) |safe_curr_left| {
+                        new_curr = safe_curr_left;
+                    } else {
+                        new_curr = safe_curr.right;
+                    }
+
+                    if (prev) |safe_prev| {
+                        if (safe_curr == safe_prev.left) {
+                            safe_prev.left = new_curr;
+                        } else {
+                            safe_prev.right = new_curr;
+                        }
+                    }
+
+                    self.allocator.destroy(safe_curr);
                 } else {
-                    next = &safe_node.right;
-                    direction = false;
-                }
-                node = next;
-            }
-            return min;
-        }
+                    var successor: ?*Node = safe_curr.right;
+                    var successor_parent: ?*Node = null;
+                    while (successor.?.left) |safe_successor_left| {
+                        var mut_safe_successor_left: ?*Node = safe_successor_left;
+                        successor_parent = successor;
+                        successor = mut_safe_successor_left;
+                    }
 
-        fn findMinRight(
-            allocator: *mem.Allocator,
-            node: *Node,
-        ) T {
-            var min: *?*Node = &node.right;
-            var value: ?T = null;
-            while (min.*) |safe_min| {
-                if (safe_min.left) |safe_left| {
-                    min = &safe_left;
+                    if (successor_parent) |safe_successor_parent| {
+                        safe_successor_parent.left = successor.?.right;
+                    } else {
+                        safe_curr.right = successor.?.right;
+                    }
+
+                    safe_curr.value = successor.?.value;
+                    self.allocator.destroy(successor.?);
                 }
             }
-            if (min.*) |safe_min| {
-                value = min.*.?.*.value;
-                // should be deleting a leaf
-                allocator.destroy(min.*);
-            }
-            return value;
         }
 
         fn traverse(
