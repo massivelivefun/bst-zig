@@ -5,8 +5,9 @@ const heap = std.heap;
 const io = std.io;
 const mem = std.mem;
 const os = std.os;
+const fs = std.fs;
 
-pub fn main() (mem.Allocator.Error || os.WriteError)!void {
+pub fn main() (mem.Allocator.Error || fs.File.Writer.Error)!void {
     var arena = heap.ArenaAllocator.init(heap.page_allocator);
     defer arena.deinit();
     const allocator = &arena.allocator();

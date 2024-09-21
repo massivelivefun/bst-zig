@@ -9,7 +9,7 @@ pub fn BinarySearchTree(comptime T: type) type {
     return struct {
         const Self = @This();
 
-        allocator: *mem.Allocator,
+        allocator: *const mem.Allocator,
         root: ?*Node = null,
 
         const Node = struct {
@@ -18,7 +18,7 @@ pub fn BinarySearchTree(comptime T: type) type {
             value: T,
         };
 
-        pub fn init(allocator: *mem.Allocator) Self {
+        pub fn init(allocator: *const mem.Allocator) Self {
             return Self {
                 .allocator = allocator,
             };
@@ -93,7 +93,7 @@ pub fn BinarySearchTree(comptime T: type) type {
                     var successor: ?*Node = safe_curr.right;
                     var successor_parent: ?*Node = null;
                     while (successor.?.left) |safe_successor_left| {
-                        var mut_safe_successor_left: ?*Node = safe_successor_left;
+                        const mut_safe_successor_left: ?*Node = safe_successor_left;
                         successor_parent = successor;
                         successor = mut_safe_successor_left;
                     }
@@ -123,19 +123,19 @@ pub fn BinarySearchTree(comptime T: type) type {
             return next;
         }
 
-        pub fn printInorder(self: *Self) os.WriteError!void {
-            const stdout = io.getStdOut().writer();
-            try printInorderRecur(self.root, &stdout);
+        pub fn printInorder(self: *Self) @TypeOf(io.getStdOut().writer()).Error!void {
+            const writer = io.getStdOut().writer();
+            try printInorderRecur(self.root, writer);
         }
 
         fn printInorderRecur(
             node: ?*Node,
-            stdout: *const io.Writer(fs.File, os.WriteError, fs.File.write)
-        ) os.WriteError!void {
+            writer: fs.File.Writer
+        ) fs.File.Writer.Error!void {
             if (node) |safe_node| {
-                try printInorderRecur(safe_node.left, stdout);
-                try stdout.print("value: {}\n", .{safe_node.value});
-                try printInorderRecur(safe_node.right, stdout);
+                try printInorderRecur(safe_node.left, writer);
+                try writer.print("value: {}\n", .{safe_node.value});
+                try printInorderRecur(safe_node.right, writer);
             }
         }
 
@@ -144,7 +144,7 @@ pub fn BinarySearchTree(comptime T: type) type {
         }
 
         fn deinitRecur(
-            allocator: *mem.Allocator,
+            allocator: *const mem.Allocator,
             node: ?*Node
         ) void {
             if (node) |safe_node| {
